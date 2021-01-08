@@ -4,6 +4,11 @@ import matplotlib.pyplot as plt
 from math import cos, pi, exp
 from geopy.distance import distance
 
+# libries plotly code, don't forget to pip
+from plotly.offline import plot
+import plotly.express as px
+import plotly.graph_objects as go
+
 path_no2_data = "NO2_2020_01.xls"
 path_traffic_data = "traffic.csv"
 
@@ -84,6 +89,8 @@ def plot_map(measurements):
     plt.axes().set_aspect('equal')
     plt.xlabel('lon')
     plt.ylabel('lat')
+    # added returns, inputs for map_plot
+    return concentration_map,lat,lon
 
 
 def concentration_map_value(coords, measurements):
@@ -112,6 +119,99 @@ def project_point(ref_point, dx, dy):
     new_lon = ref_lon + (dx / r_earth) * (180 / pi) / cos(ref_lat * pi / 180)
     return new_lat, new_lon
 
+# =============================================================================
+#     Max' Functions
+# =============================================================================
+# =============================================================================
+  
+def create_df(con_map,lat,lon):
+    # Remap the numpy array to a dataframe that is easier to use in plotly.
+    # Inputs: Concentration matrix, lat_vector, lonvector, Output = dataframe.
+    
+    
+    concentration = []
+    con = con_map.reshape(400,1)
+    con = np.reshape(con_map,(400,1),order='F')
+    for i in range(len(con)):
+        concentration.append(con[i][0]) 
+    df = pd.DataFrame(list(zip(lat,lon,concentration)),columns= ["lat","lon","concentration[uq/m3]"])
+    return df
+
+def plotly_map_px(muc):
+    # plot map with plotly,express (less versatile than plotly.graph_objects)
+    muc["size"] = 1.5
+    muc["size"][0]=3
+    fig = px.scatter_mapbox(muc, lat="lat", lon="lon", color = "concentration[uq/m3]", zoom=10, width=900,height=800,opacity = 0.7, size="size", color_continuous_scale="jet")
+    #color_continuous_scale='Inferno'color_continuous_scale='jet'
+    fig.update_layout(mapbox_style="open-street-map")
+    fig.update_layout(margin={"r":100,"t":10,"l":10,"b":100})
+    # go.Figure(fig)
+    # fig.update_traces(marker=dict(
+    #                         size=12,
+    #                         line=dict(width=2,
+    #                                   color='DarkSlateGrey'),
+    #                         marker_symbol = 'square',
+    #                               ),
+                          
+    #               selector=dict(mode='markers&text'))
+    fig.show()
+    plot(fig)
+    
+def plotly_map_go(muc,locations):
+    site_lat = muc.lat
+    site_lon = muc.lon
+    color1 = muc['concentration[uq/m3]']
+    x=pd.DataFrame.from_dict(locations, orient='index', columns = ["lat","lon"]).reset_index()
+    
+    fig = go.Figure()
+
+    fig.add_trace(go.Scattermapbox(
+            lat=site_lat,
+            lon=site_lon,
+            mode='markers',
+            #marker_symbol='diamond',
+            marker=go.scattermapbox.Marker(
+                size=31,
+                color=color1,
+                opacity=0.8,
+                colorscale=[(0,"green"),(0.25,"lightgreen"),(0.35,"yellow"),(0.45,"red"),(1,"maroon")],#custom colorscale
+                showscale=True,
+            ),
+        ))
+    # Code to add locations, unfortunatley not possible to change marker symbol, due to a bug of scattermapbox
+    # fig.add_trace(go.Scattermapbox(
+    #         lat=x.lat,
+    #         lon=x.lon,
+    #         mode='markers',
+    #         #marker_symbol='diamond',
+    #         marker=dict(size=15, color='black',opacity=1),
+    #         # marker=go.scattermapbox.Marker(
+    #         #     size=15,
+    #         #     opacity=1,
+    #         #     color = "black",
+    #         #     #[(0, "red"), (0.5, "green"), (1, "blue")]
+    #         # ),
+    #     ))
+
+    fig.update_layout(
+        title="NO Concentration in Munic",
+        autosize=True,
+        width=1200,height=1000,
+        hovermode='closest',
+        showlegend=False,
+        mapbox=dict(
+            accesstoken="pk.eyJ1IjoiZ2EyNmthbiIsImEiOiJja2pqdWsyOHIxbjh1MnlsbzFmNWJmd24wIn0.tgTabMFNJsFFt9U2wEvLdw",
+            bearing=0,
+            center=go.layout.mapbox.Center(
+                    lat=48.15,
+                    lon=11.543086174683827,),
+            pitch=0,
+            zoom=10.8,
+            style="outdoors"),
+        )
+      plot(fig)  
+# =============================================================================
+
 
 if __name__ == "__main__":
 
@@ -128,5 +228,15 @@ if __name__ == "__main__":
     traffic_data = traffic_data.drop(['Sensor ID', 'Place', 'ALL DAY'])
 
     plot_48h(no2_data_day, traffic_data)
-    plot_map(no2_data_hour)
+    con_map,lat,lon = plot_map(no2_data_hour) #changed to get the inputs for create_df
     plt.show()
+    
+# =============================================================================
+#     Max Executes
+# =============================================================================
+# =============================================================================
+    #muc = create_df(con_map,lat,lon)
+    #plotly_map_px(muc)
+    #plotly_map_go(muc,locations)
+# =============================================================================
+    
