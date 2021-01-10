@@ -32,10 +32,10 @@ location_colors = {
 plot_start = "12.01.2020 24:00"
 plot_end = "14.01.2020 24:00"
 plot_title = "NO2 and Traffic in Munich (12-13.01.2020)"
-map_center = (48.137079, 11.576006) # marienplatz
+map_center = (48.137079, 11.576006)  # marienplatz
 
 r_earth = 6378000  # earth radius [m]
-c_mass_density_to_mixing_ratio = 22.4/46 * 10e-3  # µg/m3 --> ppb
+c_mass_density_to_mixing_ratio = 0.52293  # µg/m3 --> ppb
 
 
 def plot_48h(no2_day, traffic):
