@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from math import cos, pi, exp
+from math import cos, pi
 from geopy.distance import distance
 
 # libries plotly code, don't forget to pip
@@ -125,8 +125,6 @@ def plotly_map_px(muc):
 
 
 def plotly_map_go(muc):
-    print(muc)
-    print(locations)
     site_lat = muc.lat
     site_lon = muc.lon
     color1 = muc['concentration[uq/m3]']
@@ -138,32 +136,24 @@ def plotly_map_go(muc):
             lat=site_lat,
             lon=site_lon,
             mode='markers',
-            #marker_symbol='diamond',
             marker=go.scattermapbox.Marker(
                 size=31,
                 color=color1,
-                opacity=0.8,
+                opacity=0.6,
                 colorscale=[(0,"green"),(0.25,"lightgreen"),(0.35,"yellow"),(0.45,"red"),(1,"maroon")],#custom colorscale
                 showscale=True,
             ),
         ))
     # Code to add locations, unfortunatley not possible to change marker symbol, due to a bug of scattermapbox
-    # fig.add_trace(go.Scattermapbox(
-    #         lat=x.lat,
-    #         lon=x.lon,
-    #         mode='markers',
-    #         #marker_symbol='diamond',
-    #         marker=dict(size=15, color='black',opacity=1),
-    #         # marker=go.scattermapbox.Marker(
-    #         #     size=15,
-    #         #     opacity=1,
-    #         #     color = "black",
-    #         #     #[(0, "red"), (0.5, "green"), (1, "blue")]
-    #         # ),
-    #     ))
+    fig.add_trace(go.Scattermapbox(
+            lat=x.lat,
+            lon=x.lon,
+            mode='markers',
+            marker=dict(size=15, color='blue'),
+        ))
 
     fig.update_layout(
-        title="NO Concentration in Munic",
+        title="NO aConcentration in Munic",
         autosize=True,
         width=1200, height=1000,
         hovermode='closest',
