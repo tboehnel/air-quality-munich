@@ -14,9 +14,6 @@ path_traffic_data = "traffic.csv"
 
 stations = ["München/Allach", "München/Johanneskirchen", "München/Landshuter Allee", "München/Lothstraße", "München/Stachus"]
 traffic_sensor_labels = {"LHA": "Landshuter Allee", "LOT": "Lothstraße", "STA": "Stachus"}
-plot_start = "12.01.2020 24:00"
-plot_end = "14.01.2020 24:00"
-
 locations = {   # (lat, lon)
     "München/Allach": (48.18165, 11.46444),
     "München/Johanneskirchen": (48.17319, 11.64804),
@@ -25,6 +22,18 @@ locations = {   # (lat, lon)
     "München/Stachus": (48.13732, 11.56481)
 }
 
+location_colors = {
+    "Allach": 'lightgrey',
+    "Johanneskirchen": 'slategrey',
+    "Landshuter Allee": 'darkblue',
+    "Lothstraße": 'chocolate',
+    "Stachus": 'seagreen',
+}
+plot_start = "12.01.2020 24:00"
+plot_end = "14.01.2020 24:00"
+plot_title = "NO2 and Traffic in Munich (12-13.01.2020)"
+map_center = (48.137079, 11.576006) # marienplatz
+
 r_earth = 6378000  # earth radius [m]
 c_mass_density_to_mixing_ratio = 22.4/46 * 10e-3  # µg/m3 --> ppb
 
@@ -32,24 +41,38 @@ c_mass_density_to_mixing_ratio = 22.4/46 * 10e-3  # µg/m3 --> ppb
 def plot_48h(no2_day, traffic):
     assert (len(no2_day) == 2 * len(traffic))
 
-    fig, ax1 = plt.subplots()
+    f, (ax1, ax2) = plt.subplots(2, 1)
     for station in stations:
         no2_array = no2_day[station].to_numpy()
-        ax1.plot(no2_array, label=station.split('/')[1], linestyle=':')
+        location_name = station.split('/')[1]
+        ax1.plot(no2_array, label=location_name, color=location_colors[location_name])
 
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     for sensor in traffic:
         traffic_array = traffic[sensor].to_numpy()
         traffic_array_double = np.concatenate((traffic_array, traffic_array))
-        ax2.plot(traffic_array_double, label=traffic_sensor_labels[sensor])
+        location_name = traffic_sensor_labels[sensor]
+        ax2.plot(traffic_array_double, label=location_name, color=location_colors[location_name], linestyle=":")
 
-    x_ticks = [t.split(" ")[1] for t in no2_day["Zeitpunkt"]]
-    plt.xticks(ticks=np.arange(len(x_ticks)), labels=x_ticks)
-    ax1.tick_params(axis='x', rotation=90)
-    ax1.legend(loc='upper left')
-    ax2.legend(loc='upper right')
+    x_ticks_labels_all = [t.split(" ")[1] for t in no2_day["Zeitpunkt"]]
+    x_ticks_labels = []
+    for l in x_ticks_labels_all:
+        hour = int(l.split(":")[0])
+        label = l if (hour % 3 == 0) else ''
+        x_ticks_labels.append(label)
+    ax1.set_xticks(np.arange(len(x_ticks_labels)))
+    ax2.set_xticks(np.arange(len(x_ticks_labels)))
+    ax1.set_xticklabels('' * len(x_ticks_labels))
+    ax2.set_xticklabels(x_ticks_labels, rotation='vertical')
+
+    plt.suptitle(plot_title)
+    ax1.set_title("NO2")
+    ax2.set_title("Traffic")
     ax1.set_ylabel("NO2 [ppb]")
-    ax2.set_ylabel("Traffic")
+    ax2.set_ylabel("Cars / h (?)")
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper left')
+    ax1.grid(True)
+    ax2.grid(True)
 
 
 def generate_interpolation_df(measurements):
@@ -64,7 +87,7 @@ def generate_interpolation_df(measurements):
     # reference point is the most west and north point from Landshuter Allee
     # this reference point is the center of the upper left cell (0,0) of grid
     ref_point_adjust = (grid_dim/2 - 0.5) * grid_size
-    reference_point = project_point(locations["München/Landshuter Allee"], -ref_point_adjust, ref_point_adjust)
+    reference_point = project_point(map_center, -ref_point_adjust, ref_point_adjust)
     lat_arr, lon_arr, concentration_arr = [], [], []
     for ix in range(0, grid_dim):
         for iy in range(0, grid_dim):
@@ -162,8 +185,8 @@ def plotly_map_go(concentration_df):
             accesstoken="pk.eyJ1IjoiZ2EyNmthbiIsImEiOiJja2pqdWsyOHIxbjh1MnlsbzFmNWJmd24wIn0.tgTabMFNJsFFt9U2wEvLdw",
             bearing=0,
             center=go.layout.mapbox.Center(
-                    lat=48.15,
-                    lon=11.543086174683827,),
+                    lat=map_center[0],
+                    lon=map_center[1],),
             pitch=0,
             zoom=10.8,
             style="outdoors"),
