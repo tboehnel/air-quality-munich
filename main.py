@@ -73,7 +73,7 @@ def generate_interpolation_df(measurements):
             lon_arr.append(new_point_coords[1])
             concentration_arr.append(new_point_cocentration)
 
-    return pd.DataFrame(list(zip(lat_arr, lon_arr, concentration_arr)), columns=["lat", "lon", "concentration[uq/m3]"])
+    return pd.DataFrame(list(zip(lat_arr, lon_arr, concentration_arr)), columns=["lat", "lon", "concentration"])
 
 
 def concentration_map_value(coords, measurements):
@@ -124,30 +124,28 @@ def plotly_map_px(muc):
     plot(fig)
 
 
-def plotly_map_go(muc):
-    site_lat = muc.lat
-    site_lon = muc.lon
-    color1 = muc['concentration[uq/m3]']
-    x = pd.DataFrame.from_dict(locations, orient='index', columns=["lat", "lon"]).reset_index()
+def plotly_map_go(concentration_df):
+    locations_df = pd.DataFrame.from_dict(locations, orient='index', columns=["lat", "lon"]).reset_index()
+    custom_colorscale = [(0, "green"), (0.25, "lightgreen"), (0.35, "yellow"), (0.45, "red"), (1, "maroon")]
     
     fig = go.Figure()
 
     fig.add_trace(go.Scattermapbox(
-            lat=site_lat,
-            lon=site_lon,
+            lat=concentration_df.lat,
+            lon=concentration_df.lon,
             mode='markers',
             marker=go.scattermapbox.Marker(
                 size=31,
-                color=color1,
+                color=concentration_df['concentration'],
                 opacity=0.6,
-                colorscale=[(0,"green"),(0.25,"lightgreen"),(0.35,"yellow"),(0.45,"red"),(1,"maroon")],#custom colorscale
+                colorscale=custom_colorscale,
                 showscale=True,
             ),
         ))
-    # Code to add locations, unfortunatley not possible to change marker symbol, due to a bug of scattermapbox
+    # Unfortunatley not possible to change marker symbol, due to a bug of scattermapbox
     fig.add_trace(go.Scattermapbox(
-            lat=x.lat,
-            lon=x.lon,
+            lat=locations_df.lat,
+            lon=locations_df.lon,
             mode='markers',
             marker=dict(size=15, color='blue'),
         ))
@@ -179,7 +177,7 @@ if __name__ == "__main__":
     day_start_idx = no2_data.index[no2_data["Zeitpunkt"] == plot_start].values[0]
     day_end_idx = no2_data.index[no2_data["Zeitpunkt"] == plot_end].values[0]
     no2_data_day = no2_data.iloc[day_start_idx:day_end_idx]
-    no2_data_hour = no2_data.iloc[100]
+    no2_data_day_mean = no2_data_day.mean()
 
     traffic_data = pd.read_csv(path_traffic_data).T
     traffic_data.columns = traffic_data.iloc[1]
@@ -187,5 +185,5 @@ if __name__ == "__main__":
     plot_48h(no2_data_day, traffic_data)
     plt.show()
 
-    concentration_map_df = generate_interpolation_df(no2_data_hour)
+    concentration_map_df = generate_interpolation_df(no2_data_day_mean)
     plotly_map_go(concentration_map_df)
