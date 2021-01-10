@@ -24,7 +24,9 @@ locations = {   # (lat, lon)
     "München/Lothstraße": (48.15455, 11.55466),
     "München/Stachus": (48.13732, 11.56481)
 }
-r_earth = 6378000  # earth radius
+
+r_earth = 6378000  # earth radius [m]
+c_mass_density_to_mixing_ratio = 22.4/46 * 10e-3  # µg/m3 --> ppb
 
 
 def plot_48h(no2_day, traffic):
@@ -46,7 +48,7 @@ def plot_48h(no2_day, traffic):
     ax1.tick_params(axis='x', rotation=90)
     ax1.legend(loc='upper left')
     ax2.legend(loc='upper right')
-    ax1.set_ylabel("NO2 [µg/m3] 1h-MW")
+    ax1.set_ylabel("NO2 [ppb]")
     ax2.set_ylabel("Traffic")
 
 
@@ -135,7 +137,7 @@ def plotly_map_go(concentration_df):
             lon=concentration_df.lon,
             mode='markers',
             marker=go.scattermapbox.Marker(
-                size=31,
+                size=25,
                 color=concentration_df['concentration'],
                 opacity=0.6,
                 colorscale=custom_colorscale,
@@ -151,7 +153,7 @@ def plotly_map_go(concentration_df):
         ))
 
     fig.update_layout(
-        title="NO aConcentration in Munic",
+        title="NO Concentration in Munich [ppb]",
         autosize=True,
         width=1200, height=1000,
         hovermode='closest',
@@ -170,10 +172,16 @@ def plotly_map_go(concentration_df):
 
 
 if __name__ == "__main__":
-
+    # read excel file
     xls = pd.ExcelFile(path_no2_data)
     no2_data = xls.parse(skiprows=[0, 1])
+    no2_data = no2_data[["Zeitpunkt"] + stations]
 
+    # convert to ppb
+    no2_data[stations] = no2_data[stations].apply(pd.to_numeric, errors='coerce', downcast='float')
+    no2_data[stations] = no2_data[stations].multiply(c_mass_density_to_mixing_ratio)
+
+    # reduce to day
     day_start_idx = no2_data.index[no2_data["Zeitpunkt"] == plot_start].values[0]
     day_end_idx = no2_data.index[no2_data["Zeitpunkt"] == plot_end].values[0]
     no2_data_day = no2_data.iloc[day_start_idx:day_end_idx]
