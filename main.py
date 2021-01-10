@@ -41,7 +41,6 @@ def plot_48h(no2_day, traffic):
         traffic_array_double = np.concatenate((traffic_array, traffic_array))
         ax2.plot(traffic_array_double, label=traffic_sensor_labels[sensor])
 
-    plt.figure()
     x_ticks = [t.split(" ")[1] for t in no2_day["Zeitpunkt"]]
     plt.xticks(ticks=np.arange(len(x_ticks)), labels=x_ticks)
     ax1.tick_params(axis='x', rotation=90)
@@ -51,46 +50,30 @@ def plot_48h(no2_day, traffic):
     ax2.set_ylabel("Traffic")
 
 
-def plot_map(measurements):
+def generate_interpolation_df(measurements):
+    """Creates and returns dataframe with interpolated concentration map"""
     print("Measurements")
     for loc in locations:
         print(loc, measurements[loc])
 
     grid_size = 1000  # grid cells are quadratic, length of a side in meters
     grid_dim = 20  # number of grid cells in both dimensions
-    plot_points = []
-    concentration_map = np.zeros((grid_dim, grid_dim))
 
     # reference point is the most west and north point from Landshuter Allee
     # this reference point is the center of the upper left cell (0,0) of grid
     ref_point_adjust = (grid_dim/2 - 0.5) * grid_size
     reference_point = project_point(locations["München/Landshuter Allee"], -ref_point_adjust, ref_point_adjust)
+    lat_arr, lon_arr, concentration_arr = [], [], []
     for ix in range(0, grid_dim):
         for iy in range(0, grid_dim):
             # looping left to right and top to bottom
             new_point_coords = project_point(reference_point, ix * grid_size, (-1) * iy * grid_size)
-            concentration_map[iy, ix] = concentration_map_value(new_point_coords, measurements)
-            plot_points.append(new_point_coords)
+            new_point_cocentration = concentration_map_value(new_point_coords, measurements)
+            lat_arr.append(new_point_coords[0])
+            lon_arr.append(new_point_coords[1])
+            concentration_arr.append(new_point_cocentration)
 
-    plt.figure()
-    plt.imshow(concentration_map)
-    plt.colorbar()
-    plt.axis('off')
-
-    plt.figure()
-    lat = [p[0] for p in plot_points]
-    lon = [p[1] for p in plot_points]
-    plt.scatter(lon, lat)
-
-    lat_sensors = [p[0] for p in locations.values()]
-    lon_sensors = [p[1] for p in locations.values()]
-    plt.scatter(lon_sensors, lat_sensors, c='r')
-
-    plt.axes().set_aspect('equal')
-    plt.xlabel('lon')
-    plt.ylabel('lat')
-    # added returns, inputs for map_plot
-    return concentration_map,lat,lon
+    return pd.DataFrame(list(zip(lat_arr, lon_arr, concentration_arr)), columns=["lat", "lon", "concentration[uq/m3]"])
 
 
 def concentration_map_value(coords, measurements):
@@ -119,23 +102,6 @@ def project_point(ref_point, dx, dy):
     new_lon = ref_lon + (dx / r_earth) * (180 / pi) / cos(ref_lat * pi / 180)
     return new_lat, new_lon
 
-# =============================================================================
-#     Max' Functions
-# =============================================================================
-# =============================================================================
-  
-def create_df(con_map,lat,lon):
-    # Remap the numpy array to a dataframe that is easier to use in plotly.
-    # Inputs: Concentration matrix, lat_vector, lonvector, Output = dataframe.
-    
-    
-    concentration = []
-    con = con_map.reshape(400,1)
-    con = np.reshape(con_map,(400,1),order='F')
-    for i in range(len(con)):
-        concentration.append(con[i][0]) 
-    df = pd.DataFrame(list(zip(lat,lon,concentration)),columns= ["lat","lon","concentration[uq/m3]"])
-    return df
 
 def plotly_map_px(muc):
     # plot map with plotly,express (less versatile than plotly.graph_objects)
@@ -156,12 +122,15 @@ def plotly_map_px(muc):
     #               selector=dict(mode='markers&text'))
     fig.show()
     plot(fig)
-    
-def plotly_map_go(muc,locations):
+
+
+def plotly_map_go(muc):
+    print(muc)
+    print(locations)
     site_lat = muc.lat
     site_lon = muc.lon
     color1 = muc['concentration[uq/m3]']
-    x=pd.DataFrame.from_dict(locations, orient='index', columns = ["lat","lon"]).reset_index()
+    x = pd.DataFrame.from_dict(locations, orient='index', columns=["lat", "lon"]).reset_index()
     
     fig = go.Figure()
 
@@ -196,7 +165,7 @@ def plotly_map_go(muc,locations):
     fig.update_layout(
         title="NO Concentration in Munic",
         autosize=True,
-        width=1200,height=1000,
+        width=1200, height=1000,
         hovermode='closest',
         showlegend=False,
         mapbox=dict(
@@ -209,8 +178,7 @@ def plotly_map_go(muc,locations):
             zoom=10.8,
             style="outdoors"),
         )
-      plot(fig)  
-# =============================================================================
+    plot(fig)
 
 
 if __name__ == "__main__":
@@ -226,17 +194,8 @@ if __name__ == "__main__":
     traffic_data = pd.read_csv(path_traffic_data).T
     traffic_data.columns = traffic_data.iloc[1]
     traffic_data = traffic_data.drop(['Sensor ID', 'Place', 'ALL DAY'])
-
     plot_48h(no2_data_day, traffic_data)
-    con_map,lat,lon = plot_map(no2_data_hour) #changed to get the inputs for create_df
     plt.show()
-    
-# =============================================================================
-#     Max Executes
-# =============================================================================
-# =============================================================================
-    #muc = create_df(con_map,lat,lon)
-    #plotly_map_px(muc)
-    #plotly_map_go(muc,locations)
-# =============================================================================
-    
+
+    concentration_map_df = generate_interpolation_df(no2_data_hour)
+    plotly_map_go(concentration_map_df)
