@@ -12,26 +12,26 @@ import plotly.graph_objects as go
 path_no2_data = "NO2_2020_01.xls"
 path_traffic_data = "traffic.csv"
 
-stations = ["München/Allach", "München/Johanneskirchen", "München/Landshuter Allee", "München/Lothstraße", "München/Stachus"]
-traffic_sensor_labels = {"LHA": "Landshuter Allee", "LOT": "Lothstraße", "STA": "Stachus"}
+stations = ["München/Landshuter Allee",  "München/Stachus", "München/Lothstraße", "München/Allach", "München/Johanneskirchen",]
+traffic_sensor_labels = {"LHA": "Landshuter Allee", "STA": "Stachus", "LOT": "Lothstraße"}
 locations = {   # (lat, lon)
+    "München/Landshuter Allee": (48.14955, 11.53653),
+    "München/Stachus": (48.13732, 11.56481),
+    "München/Lothstraße": (48.15455, 11.55466),
     "München/Allach": (48.18165, 11.46444),
     "München/Johanneskirchen": (48.17319, 11.64804),
-    "München/Landshuter Allee": (48.14955, 11.53653),
-    "München/Lothstraße": (48.15455, 11.55466),
-    "München/Stachus": (48.13732, 11.56481)
 }
 
 location_colors = {
     "Allach": 'lightgrey',
-    "Johanneskirchen": 'slategrey',
+    "Johanneskirchen": 'silver',
     "Landshuter Allee": 'darkblue',
-    "Lothstraße": 'chocolate',
+    "Lothstraße": 'tomato',
     "Stachus": 'seagreen',
 }
-plot_start = "12.01.2020 24:00"
-plot_end = "14.01.2020 24:00"
-plot_title = "NO2 and Traffic in Munich (12-13.01.2020)"
+plot_start = "27.01.2020 24:00"
+plot_end = "29.01.2020 24:00"
+plot_title = "NO2 and Traffic in Munich (27-28.01.2020)"
 map_center = (48.137079, 11.576006)  # marienplatz
 
 r_earth = 6378000  # earth radius [m]
@@ -47,7 +47,7 @@ def plot_48h(no2_day, traffic):
         location_name = station.split('/')[1]
         ax1.plot(no2_array, label=location_name, color=location_colors[location_name])
 
-    for sensor in traffic:
+    for sensor in traffic_sensor_labels:
         traffic_array = traffic[sensor].to_numpy()
         traffic_array_double = np.concatenate((traffic_array, traffic_array))
         location_name = traffic_sensor_labels[sensor]
@@ -68,7 +68,7 @@ def plot_48h(no2_day, traffic):
     ax1.set_title("NO2")
     ax2.set_title("Traffic")
     ax1.set_ylabel("NO2 [ppb]")
-    ax2.set_ylabel("Cars / h (?)")
+    ax2.set_ylabel("Cars")
     ax1.legend(loc='upper left')
     ax2.legend(loc='upper left')
     ax1.grid(True)
